@@ -1,0 +1,55 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
+const User = require('./models/User');
+require('events').EventEmitter.defaultMaxListeners = 20;
+
+dotenv.config();
+
+/* mongoose.connect(process.env.MONGO_URL, (err) => {
+    if (err) throw err;
+}); */
+const connectDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URL);
+
+    } catch (err) {
+        throw err;
+    }
+};
+
+connectDB();
+
+
+const jwtsecret = process.env.JWT_SECRET;
+
+const app = express();
+app.use(express.json());
+app.use(cors({
+    credentials: true,
+    origin: process.env.CLIENT_URL,
+}))
+app.get('/test', (req, res) => {
+    res.json('test ok');
+});
+
+app.post('/register', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const createdUser = await User.create({ username, password });
+        jwt.sign({ userId: createdUser._id }, jwtsecret), {}, (err, token => {
+            if (err) throw err;
+            res.cookie('token', token).status(201).json({
+                _id: createdUser._id,
+            });
+        });
+    }
+    catch (err) {
+        if (err) throw err;
+        res.status(500).json('error');
+    }
+});
+app.listen(4040);
+//mongodb password: iWQCyNI75ScHdCX4
